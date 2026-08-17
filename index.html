@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kargo Demo Warehouse</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #f5f7fb;
+        color: #1f2937;
+      }
+
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 48px 20px;
+      }
+
+      .hero,
+      .panel {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+      }
+
+      .hero {
+        margin-bottom: 24px;
+      }
+
+      h1,
+      h2,
+      p {
+        margin-top: 0;
+      }
+
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 16px;
+        margin: 24px 0;
+      }
+
+      .metric {
+        background: #eef2ff;
+        border-radius: 12px;
+        padding: 16px;
+      }
+
+      .metric strong {
+        display: block;
+        font-size: 1.8rem;
+        color: #312e81;
+      }
+
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+
+      .controls input,
+      .controls select {
+        flex: 1 1 220px;
+        padding: 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        font: inherit;
+      }
+
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 12px;
+      }
+
+      li {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 16px;
+        background: #f8fafc;
+      }
+
+      .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        background: #dbeafe;
+        color: #1d4ed8;
+      }
+
+      .badge.low {
+        background: #fee2e2;
+        color: #b91c1c;
+      }
+
+      .muted {
+        color: #475569;
+        margin-bottom: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <p class="badge">Basic app</p>
+        <h1>Kargo Demo Warehouse</h1>
+        <p>
+          This repository now acts as a small warehouse dashboard for demo
+          purposes, showing a few sample items and lightweight inventory
+          filtering.
+        </p>
+        <div class="summary" id="summary"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Inventory</h2>
+        <div class="controls">
+          <input id="search" type="search" placeholder="Search by item or location" />
+          <select id="status">
+            <option value="all">All stock levels</option>
+            <option value="healthy">Healthy stock</option>
+            <option value="low">Low stock</option>
+          </select>
+        </div>
+        <ul id="inventory"></ul>
+      </section>
+    </main>
+
+    <script>
+      const inventory = [
+        { name: "Helm charts", quantity: 28, location: "Rack A1", owner: "Platform", low: false },
+        { name: "Demo manifests", quantity: 11, location: "Rack B2", owner: "Delivery", low: false },
+        { name: "Release bundles", quantity: 4, location: "Rack C3", owner: "Operations", low: true },
+        { name: "Promotion templates", quantity: 2, location: "Rack D4", owner: "Platform", low: true }
+      ];
+
+      const summary = document.getElementById("summary");
+      const inventoryList = document.getElementById("inventory");
+      const searchInput = document.getElementById("search");
+      const statusFilter = document.getElementById("status");
+
+      function renderSummary(items) {
+        const lowStock = items.filter((item) => item.low).length;
+        const totalUnits = items.reduce((count, item) => count + item.quantity, 0);
+
+        summary.innerHTML = `
+          <div class="metric">
+            <strong>${items.length}</strong>
+            <span>Tracked items</span>
+          </div>
+          <div class="metric">
+            <strong>${totalUnits}</strong>
+            <span>Total units</span>
+          </div>
+          <div class="metric">
+            <strong>${lowStock}</strong>
+            <span>Low-stock items</span>
+          </div>
+        `;
+      }
+
+      function renderInventory() {
+        const query = searchInput.value.trim().toLowerCase();
+        const status = statusFilter.value;
+        const filteredItems = inventory.filter((item) => {
+          const matchesQuery =
+            !query ||
+            item.name.toLowerCase().includes(query) ||
+            item.location.toLowerCase().includes(query);
+          const matchesStatus =
+            status === "all" ||
+            (status === "low" && item.low) ||
+            (status === "healthy" && !item.low);
+
+          return matchesQuery && matchesStatus;
+        });
+
+        renderSummary(filteredItems);
+
+        inventoryList.innerHTML = filteredItems.length
+          ? filteredItems
+              .map(
+                (item) => `
+                  <li>
+                    <div class="row">
+                      <div>
+                        <h3>${item.name}</h3>
+                        <p class="muted">${item.location} · Owned by ${item.owner}</p>
+                      </div>
+                      <div>
+                        <p class="badge${item.low ? " low" : ""}">${item.low ? "Low stock" : "Healthy"}</p>
+                        <p><strong>${item.quantity}</strong> units</p>
+                      </div>
+                    </div>
+                  </li>
+                `
+              )
+              .join("")
+          : '<li><p class="muted">No inventory items match the current filters.</p></li>';
+      }
+
+      searchInput.addEventListener("input", renderInventory);
+      statusFilter.addEventListener("change", renderInventory);
+      renderInventory();
+    </script>
+  </body>
+</html>
